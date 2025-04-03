@@ -58,25 +58,25 @@ langaus->SetParameter(2,50.0);
 langaus->SetParameter(3,20.);
 langaus->SetParameter(4,2.);
 
-// TFile è un file di tipo ROOT
+//TFile è un file di tipo ROOT
 
-// File dove scrivo istogrammi e grafici
-   TFile *f = new TFile("C:/root_v5.34.38/macros/New_DAQ_foot_3172_results_1000.root", "RECREATE");  
-// File che leggo
-   TFile *file = new TFile("C:/root_v5.34.38/macros/foot_3172.root");
-
-// dichiaro un indicatore per un file con etichetta "outfile"
-   FILE *outfile;
-// dichiaro una variaile carattere con 700 caratteri    
-   char fileout[700] = "C:/root_v5.34.38/macros/output.txt";  //file txt che genero di output
-// estraggo un oggetto "TTree" chiamato "raw_events" dal file ROOT precedentemente estratto 
+//File dove scrivo istogrammi e grafici
+  TFile *f = new TFile("C:/root_v5.34.38/macros/New_DAQ_foot_3172_results_1000.root", "RECREATE");  
+//File che leggo
+  TFile *file = new TFile("C:/root_v5.34.38/macros/foot_3172.root");
+//dichiaro un indicatore per un file con etichetta "outfile"
+  FILE *outfile;
+//dichiaro una variaile carattere con 700 caratteri    
+  char fileout[700] = "C:/root_v5.34.38/macros/output.txt";  //file txt che genero di output
+  outfile = fopen(fileout,"a");//sto aprendo il file di output in scrittura
+//estraggo un oggetto "TTree" chiamato "raw_events" dal file ROOT precedentemente estratto 
   TTree * raw_events = (TTree*)file->Get("raw_events"); //cerca un oggetto con il nome "raw_events" 
-// questo albero contiene i dati grezzi degli eventi che verranno analizzati successivamente
+//questo albero contiene i dati grezzi degli eventi che verranno analizzati successivamente
   Float_t bias = 50.0;      // sensor bias [V] : bias applicato al sensore
   Float_t Angle = 74.5;		// source angle [°] : angolo della sorgente rispetto al sensore
 //
 //Inizializzo i vettori dove mettere le letture ADC
-//  std::vector<unsigned short> *raw_event = new std::vector<unsigned short>();
+//std::vector<unsigned short> *raw_event = new std::vector<unsigned short>();
   vector<unsigned short> *raw_event = new vector<unsigned short>(); //?da capire meglio a cosa serve crearne uno nuovo
   //vector rappresenta un contenitore dinamico per meorizzare una sequenza di elementi. 
   //unsigned short dice il tipo di elementi che accetta il vettore ,ovvero numeri interi senza segno a 16 bit.
@@ -88,15 +88,15 @@ langaus->SetParameter(4,2.);
   //SetBranchAddress è una funzione di ROOT che collega un ramo di un albero a una variabile o a un puntatore
   //Il ramo "RAW Event" contiene i dati grezzi degli eventi , che verranno memorizzati nel vettore raw_event di tipo vector<unsigned short>
 
-  Int_t nentries;
+  Int_t nentries;// Int_t è una variaile di tipo intero definita da ROOT
   nentries = raw_events->GetEntries(); //Funzione di ROOT che restituisce il numero totale di enrtrate/eventi contenute nell'albero raw_events
   //Ogni "entrata" corrisponde a un evento registrato nel file ROOT, che può contenere dati come letture ADC,segnali o altre informazioni sperimentali
-  Int_t n_pedestal = 500; //numero di eventi da utilizzare per il calcolo del piedistallo
+  Int_t n_pedestal = 500; //numero di eventi da utilizzare per il calcolo del piedistallo, perchè 500? perchè è un numero arbitrario scelto per avere una buona statistica
   Int_t n_events = nentries; //numero totale di eventi da analizzare
-  n_events = 1000; 
-  printf(" n pedestal %d n events %d \n",n_pedestal,n_events); 
-  Int_t event_offset = 0; 
-  Int_t ped_event_offset = 0;
+  n_events = 5000; 
+  printf(" n pedestal %d n_events %d \n",n_pedestal,n_events); 
+  Int_t event_offset = 0; //azzero l'offset dell'evento
+  Int_t ped_event_offset = 0; //azzero l'offset del piedistallo  
   Int_t n_chip = 10; //numero di chip
   Int_t n_chip_chan = 64; //numero di canali per chip
   Int_t n_strip_sensor = n_chip * n_chip_chan; //numero totale di strip del sensore 
@@ -107,10 +107,10 @@ langaus->SetParameter(4,2.);
   Double_t threshold = 10.; // soglia per definire inizio di un cluster 
   Double_t common_thre = 10.; //soglia per definire il common mode
   Int_t common_mode_choice = 0; //scelta del common mode
-  Int_t n_max_in_event = 60; //numero massimo di cluster in un evento
+  Int_t n_max_in_event = 60; //numero massimo di cluster in un evento, perchè 60? 
   Int_t max_cluster_width = 640; //numero massimo di strip in un cluster
   Int_t good_event[n_events]; // array per memorizzare gli eventi buoni
-  Double_t local_max[n_events][n_max_in_event][6]; //array tridimensionale per memorizzare i minimi locali
+  Double_t local_max[n_events][n_max_in_event][6]; //array tridimensionale per memorizzare i parametri del cluster 
   //6 è il numero di parametri che voglio memorizzare per ogni cluster:
   //1: inizio del cluster (indice della strip iniziale)
   //2: fine del cluster (indice della strip finale)
@@ -131,8 +131,8 @@ langaus->SetParameter(4,2.);
   char histo_title[3000]; // array di caratteri per memorizzare il titolo degli istogrammi 
   char histo_base[50]; //array di caratteri per memorizzare il suffisso del titolo degli istogrammi
   //Definisco una serie di istogrammi ROOT
-  TH1F *hRMS = new TH1F("RMS","RMS",100,0.,10.);
-  TH1F *hMean = new TH1F("Mean","Mean",75,100.,400.);
+  TH1F *hRMS = new TH1F("RMS","RMS",100,0.,10.); //Istogramma per rappresentare la distribuzione dell' RMS
+  TH1F *hMean = new TH1F("Mean","Mean",75,100.,400.); //Istogramma per rappresentare la distribuzione della media
   TH1F *hcm100 = new TH1F("CM100","CM100",20,-0.5,0.5); //Istogramma per rappresentare il common mode(rumore comune) con un intervallo ristretto di 100 eventi
   // "CM100" è il nome dell'istogramma,"CM100" è anche il titolo dell'istogramma, 20 è il numero di bin e [-0.5,0.5] è l'intervallo dell'asse x
   // Scopo: analizzare il rumore comune in un intervallo ristretto di eventi per identificare eventuali anomalie o rumori indesiderati.
@@ -180,10 +180,10 @@ langaus->SetParameter(4,2.);
   TH1F *cluster_width_distr = new TH1F("Cluster width distribution","Cluster width distribution",64,0.,64.);
   TH1F *cluster_strip_signal_distr = new TH1F("Cluster strip signal distribution","Cluster strip signal distribution",20000,0.,200.);
   TH1F *cluster_integral_signal_distr = new TH1F("Cluster width distribution","Cluster width distribution",2000,0.,500.);
-  TProfile *hcm_prof = new TProfile("CM profile","CM profile",n_events,0,float(n_events),-1000.,1000.);
+  TProfile *hcm_prof = new TProfile("CM profile","CM profile",n_events,0,float(n_events),-1000.,1000.); // profilo del common mode in funzione del numero di eventi
   TH1F *hfit = new TH1F("h5","par1fit",10000,-1,1);
   TH1F *hchi = new TH1F("h6","chi_quadro",100,-10,10);
-  TH2 *common_tot_vs_rms = new TH2F("Total common noise vs its rms","",400,-20.,20.,400,0.,20.);
+  TH2 *common_tot_vs_rms = new TH2F("Total common noise vs its rms","",400,-20.,20.,400,0.,20.);// istogramma bidimensionale per rappresentare il rumore comune totale in funzione del suo rumore RMS
   //TCanvas * c = new TCanvas("c", "c", 1000, 1000); // crea un canvas per visualizzare gli istogrammi
 
   // dichiaro array di istogrammi per il piedistallo
@@ -191,12 +191,12 @@ langaus->SetParameter(4,2.);
   // h è un array di puntatori a istogrammi
   // ogni elemento dell'array h è un puntatore a un istogramma di tipo TH1
   // TH1 è una classe di ROOT che rappresenta un istogramma unidimensionale
-  TH1 *h_prof[n_strip_sensor];
+  TH1 *h_prof[n_strip_sensor]; // array di profili per il piedistallo
   for (Int_t k=0; k<n_strip_sensor; k++) // sto ciclando su tutto il sensore
-   { h[k] = new TH1F("histo","piedistallo",350,50.,400.);  
-    h_prof[k] = new TH1F("histo","piedistallo profile",n_pedestal,0.,float(n_pedestal)); 
-    strip_value[k] = new TH1F("strip signal","strip signal",800,-20.,20.);
-   }
+   { h[k] = new TH1F("histo","piedistallo",350,50.,400.); // creo un istogramma per il piedistallo  
+     h_prof[k] = new TH1F("histo","piedistallo profile",n_pedestal,0.,float(n_pedestal)); // creo un profilo per il piedistallo
+     strip_value[k] = new TH1F("strip signal","strip signal",800,-20.,20.); // creo un istogramma per il segnale della strip
+    }
 
   // CALCOLO PIEDISTALLO
   // cicli dove riempio 640 istogrammi e 640 grafici uno per ogni strip
@@ -204,12 +204,12 @@ langaus->SetParameter(4,2.);
   // adc è un array di tipo unsigned short che memorizza i valori letti da ogni strip
   for (Int_t i=ped_event_offset;i<n_pedestal;i++) // ciclo sugli eventi per il calcolo del piedistallo
    { raw_events->GetEntry(i); // leggo l'evento i dal file ROOT
-    for (Int_t j=0; j<n_strip_sensor; j++) // ciclo su ogni strip
-     {
-      adc[j] = (*raw_event)[j]; // leggo il valore ADC per ogni strip
-      h[j]->Fill(adc[j]); // riempio l'istogramma h[j] con il valore ADC
-      h_prof[j]->Fill(float(i),adc[j]); // riempio il profilo h_prof[j] con l'evento e il valore ADC
-     }
+     for (Int_t j=0; j<n_strip_sensor; j++) // ciclo su ogni strip
+      {
+       adc[j] = (*raw_event)[j]; // leggo il valore ADC per ogni strip
+       h[j]->Fill(adc[j]); // riempio l'istogramma h[j] con il valore ADC
+       h_prof[j]->Fill(float(i),adc[j]); // riempio il profilo h_prof[j] con l'evento e il valore ADC
+       }
     }
   // salvo il valor medio del piedistallo per ogni strip
   Float_t Mean[n_strip_sensor];// array per memorizzare la media del piedistallo
@@ -230,8 +230,8 @@ langaus->SetParameter(4,2.);
     // e la memorizza nell'array Noise[j]
     } 
 //
-// definizioni variabili di singolo evento
-   Float_t signal[n_strip_sensor]; // array per memorizzare il segnale di ogni strip
+//definizioni variabili di singolo evento
+  Float_t signal[n_strip_sensor]; // array per memorizzare il segnale di ogni strip
   // signal è un array di tipo Float_t che memorizza il segnale per ogni strip
   // Float_t è un tipo di dato definito da ROOT che rappresenta un numero in virgola mobile a singola precisione(32 bit)
 
@@ -251,12 +251,12 @@ langaus->SetParameter(4,2.);
   Int_t n_strip_common[n_chip]; // numero di strip usate per il common mode per ogni chip
  
  //
-  for ( Int_t i=event_offset; i<n_events; i++)
+  for ( Int_t i=event_offset; i<n_events; i++) // ciclo sugli eventi
    { //printf(" dentro loop eventi \n");
-    raw_events->GetEntry(i);
-	  good_event[i] = 1;
-    common_tot = 0.;
-    common_tot2 = 0.;
+    raw_events->GetEntry(i); // leggo l'evento i dal file ROOT
+	  good_event[i] = 1;// inizializzo l'array degli eventi buoni a 1
+    common_tot = 0.; 
+    common_tot2 = 0.; 
 	  n_total_strip_common = n_strip_sensor;// numero totale di strip usate per il common mode unico
     common_ADC[0] = 0.;// common mode per il primo ADC
 	  n_ADC_strip_common[0] = n_chip_chan*5;// numero di strip usate per il common mode per il primo ADC 
@@ -270,60 +270,60 @@ langaus->SetParameter(4,2.);
     histo_suffix << i; // inserisco l'evento i nella stringa
 	  histo_suffix >> histo_base; // converti l'intero i in una stringa
 	  strcat(histo_title,histo_base); // concatena la stringa "event_display_" con il numero dell'evento i
-    TH1F *ev_display = new TH1F(histo_title,histo_title,n_strip_sensor,0.,float(n_strip_sensor)); // creo un istogramma 1D per visualizzare il segnale di ogni strip
-    TH1F *ev_raw_display = new TH1F(histo_title,histo_title,n_strip_sensor,0.,float(n_strip_sensor)); // creo un istogramma 1D per visualizzare il segnale grezzo di ogni strip
+    //TH1F *ev_display = new TH1F(histo_title,histo_title,n_strip_sensor,0.,float(n_strip_sensor)); // creo un istogramma 1D per visualizzare il segnale di ogni strip
+    //TH1F *ev_raw_display = new TH1F(histo_title,histo_title,n_strip_sensor,0.,float(n_strip_sensor)); // creo un istogramma 1D per visualizzare il segnale grezzo di ogni strip
 //	printf(" evento %d prima chip \n",i);
 
-    for( k=0; k<n_chip; k++)
+    for( k=0; k<n_chip; k++) // ciclo sui 10 chip
      { common[k] = 0;// inizializzo il common mode per ogni chip
-	     n_strip_common[k] = n_chip_chan; 
-       for (j=0; j<n_chip_chan; j++)
-	      { j_index = j + k*n_chip_chan;
+	     n_strip_common[k] = n_chip_chan; // numero di strip usate per il common mode per ogni chip
+       for (j=0; j<n_chip_chan; j++) // ciclo sui 64 canali di ogni chip
+	      { j_index = j + k*n_chip_chan; // indice di strip globale
 //	printf(" i %d chip %d strip %d strip ID %d \n",i,k,j,j_index);
-          ev_raw_display->Fill(float(j_index),signal[j_index]);
-		      signal[j_index] = ((*raw_event)[j_index]);
-          ev_raw_display->Fill(float(j_index),signal[j_index]);
-		      signal[j_index] = signal[j_index]-Mean[j_index];
-          if(signal[j_index] < common_thre) 
-		       { common_tot = common_tot+signal[j_index];
-		         common_tot2 = common_tot2+signal[j_index]**2;
+          //ev_raw_display->Fill(float(j_index),signal[j_index]); // riempio l'istogramma con il segnale grezzo
+		      signal[j_index] = ((*raw_event)[j_index]); // leggo il valore ADC per ogni strip
+          //ev_raw_display->Fill(float(j_index),signal[j_index]); // riempio l'istogramma con il segnale grezzo
+		      signal[j_index] = signal[j_index]-Mean[j_index]; // sottraggo il piedistallo
+          if(signal[j_index] < common_thre)  // se il segnale di strip è sotto la soglia di common mode
+		       { common_tot = common_tot+signal[j_index]; // accumulo il valore del segnale
+		         common_tot2 = common_tot2+signal[j_index]**2; // accumulo il quadrato del segnale
 //		  printf(" i %d j_index %d signal %f common %f common2 %f \n",i,j_index,signal[j_index],common_tot,common_tot2);
-		         common[k] = common[k] + signal[j_index];
-		         if(k < 5 ) { common_ADC[0] = common_ADC[0] + signal[j_index]; }
-		         else { common_ADC[1] = common_ADC[1] + signal[j_index]; }
+		         common[k] = common[k] + signal[j_index]; // accumulo il valore del segnale per ogni chip
+		         if(k < 5 ) { common_ADC[0] = common_ADC[0] + signal[j_index]; }// accumulo il valore del segnale per il primo ADC
+		         else { common_ADC[1] = common_ADC[1] + signal[j_index]; }// accumulo il valore del segnale per il secondo ADC
 		        }
 		      else
 		       { n_strip_common[k] = n_strip_common[k] -1;
 		         n_total_strip_common = n_total_strip_common -1;
-		      if(k < 5 )   { n_ADC_strip_common[0] = n_ADC_strip_common[0] -1;}
-		      else {n_ADC_strip_common[1] = n_ADC_strip_common[0] -1;}
+		         if(k < 5 )   { n_ADC_strip_common[0] = n_ADC_strip_common[0] -1;} //strip al bordo?
+		         else {n_ADC_strip_common[1] = n_ADC_strip_common[0] -1;} //strip al bordo?
             }
-        } // fine ciclo strip
-
-	     if(n_strip_common[k] > 0) 
-	      { if(n_strip_common[k] < (n_chip_chan/2)) 
-	         { common[k] = common[k] /n_strip_common[k]; 
-		         good_event[i] = 0;
+         } // fine ciclo strip
+// calcolo il common mode per ogni chip 
+	     if(n_strip_common[k] > 0) // se il numero di strip usate per il common mode del chip k-esimo è > 0
+	      { if(n_strip_common[k] < (n_chip_chan/2)) //e se è anche < 32
+	         { common[k] = common[k] /n_strip_common[k]; // allora normalizzo il common mode del chip k al numero di strip usate per il common mode di quel chip
+		         good_event[i] = 0; // e dico che l'evento non è buono 
 		        }
-	        else
-		       { common[k] = common[k] /n_strip_common[k];
- 	           hcm_chip[k]->Fill(common[k]);
-	           hcm_prof_chip[k]->Fill(float(i),common[k]);
+	        else //altrimenti(quindi se sono > 32)
+		       { common[k] = common[k] /n_strip_common[k]; // normalizzo il common mode del chip k al numero di strip usate per il common mode di quel chip
+ 	           hcm_chip[k]->Fill(common[k]); // e riempio l'istogramma con il common mode del chip k
+	           hcm_prof_chip[k]->Fill(float(i),common[k]); // e riempio il profilo con il common mode del chip k
 	          }
 	       } 
 	    }// fine ciclo chip
 
-	  common_ADC[0] = common_ADC[0]/n_ADC_strip_common[0];
-	  common_ADC[1] = common_ADC[1]/n_ADC_strip_common[1];
-	  common_tot = common_tot/n_total_strip_common;
-	  common_tot_rms = sqrt(common_tot2/n_total_strip_common - common_tot**2);
-    n_strip_common_distr->Fill(float(n_total_strip_common));
-    hcm->Fill(common_tot);
-    hcm_prof->Fill(float(i),common_tot);
-    common_tot_rms_distr->Fill(common_tot_rms);
-	  common_tot_vs_rms->Fill(common_tot,common_tot_rms);
+	  common_ADC[0] = common_ADC[0]/n_ADC_strip_common[0]; // common mode per il 1°ADC normalizzato alle prime 320 strip ,dei primi 5 chip, che contribuiscono al common mode  
+	  common_ADC[1] = common_ADC[1]/n_ADC_strip_common[1]; // common mode per il 2°ADC normalizzato alle ultime 320 strip ,degli ultimi 5 chip, che contribuiscono al common mode
+	  common_tot = common_tot/n_total_strip_common; //common mode unico normalizzato al numero totale di strip usate per il common mode
+	  common_tot_rms = sqrt(common_tot2/n_total_strip_common - common_tot**2); // calcolo il rumore comune
+    n_strip_common_distr->Fill(float(n_total_strip_common)); // riempio l'istogramma con il numero di strip usate per il common mode
+    hcm->Fill(common_tot); // riempio l'istogramma con il common mode unico
+    hcm_prof->Fill(float(i),common_tot); // riempio il profilo con il common mode unico
+    common_tot_rms_distr->Fill(common_tot_rms); // riempio l'istogramma con il rumore comune
+	  common_tot_vs_rms->Fill(common_tot,common_tot_rms); // riempio l'istogramma 2D con il common mode normalizzato vs rumore comune
     
-	  printf(" i %d common %f common_rms %f n_strip %d \n",i,common_tot,common_tot_rms,n_total_strip_common);
+    //printf(" i %d common %f common_rms %f n_strip %d \n",i,common_tot,common_tot_rms,n_total_strip_common);
     //i = indice dell'evento
     //common_tot = valore del common mode calcolato per l'evento i
     //common_tot_rms = valore del rumore comune calcolato per l'evento i
@@ -336,138 +336,152 @@ langaus->SetParameter(4,2.);
 //
     if(good_event > 0)// se l'evento è buono 
 	   { if(common_tot_rms < 6.) //se ha una certa qualità, altrimenti lo buttiamo
-	    { Int_t i_local_max = 0;  
-	      Int_t in_cluster = 0;  	// flag per indicare che stiamo processando un cluster
-     // Tutti azzeramenti dei parametri del cluster: 
-	      local_max[i][i_local_max][0] = 0.;							//  start cluster 
-	      local_max[i][i_local_max][1] = 0.;    					//  end cluster 
-	      local_max[i][i_local_max][2] = 0.;							//  cluster maximum
-	      local_max[i][i_local_max][3] = 0.;							//  position of max in cluster
-	      local_max[i][i_local_max][4] = 0.;    					//  cluster width 
-	      local_max[i][i_local_max][5] = 0.;  						//  integral of cluster signal
-	      Int_t n_strip_over_threshold = 0;  //  number of strip over threshold
-	      Double_t ev_signal = 0.;									//  Calcolo media e RMS signal per identificare bad events
-	      Double_t ev_signal2 = 0.;									//  Calcolo media e RMS signal per identificare bad events
-	      Double_t rms_signal = 0.;									//  Calcolo media e RMS signal per identificare bad events
+	     { Int_t i_local_max = 0;  // inizializzo l'indice del massimo locale
+         Int_t in_cluster = 0;  	//numero di cluster trovati // flag per indicare che stiamo processando un cluster
+         // Tutti azzeramenti dei parametri del cluster: 
+	       local_max[i][i_local_max][0] = 0.;							//  start cluster 
+	       local_max[i][i_local_max][1] = 0.;    					//  end cluster 
+	       local_max[i][i_local_max][2] = 0.;							//  cluster maximum
+	       local_max[i][i_local_max][3] = 0.;							//  position of max in cluster
+	       local_max[i][i_local_max][4] = 0.;    					//  cluster width 
+	       local_max[i][i_local_max][5] = 0.;  						//  integral of cluster signal
+	       Int_t n_strip_over_threshold = 0;  //  number of strip over threshold
+	       Double_t ev_signal = 0.;									//  Calcolo media e RMS signal per identificare bad events
+	       Double_t ev_signal2 = 0.;									//  Calcolo media e RMS signal per identificare bad events
+	       Double_t rms_signal = 0.;									//  Calcolo media e RMS signal per identificare bad events
 
-	      for(k=0; k<max_cluster_width; k++) { strip_signal[k] = 0.; } // azzero il segnale delle strip 
-        for( k=0; k<n_chip; k++)// ciclo sui chip 
-         { for (j=0; j<n_chip_chan; j++)// ciclo sui canali
-	          { j_index = j + k*n_chip_chan; //j_index va da 0 a 640, quindi sto scorrendo su tutte le strip del sensore
-		          signal[j_index] = (signal[j_index]-common[k])*good_event[i]; //rimuovo il common mode dal segnale della strip filtrando eventi cattivi azzerando il segnale se l'evento è cattivo
-			        strip_value[j_index]->Fill(signal[j_index]);
-		          ev_display->Fill(float(j_index),signal[j_index]);//riempio istogramma con indice di strip e valore del segnale sulla strip 
-              //Scopo : rappresentare segnale di strip ed ogni bin corrisponde ad una strip e il valore del bin è il segnale della strip
-		          ev_signal = ev_signal + signal[j_index]; //accumula la somma totale dei segnali di tutte le strip per l'evento corrente
-              //Scopo : calcolare media del segnale
-		          ev_signal2 = ev_signal2 + signal[j_index]**2;	 //accumula la somma dei quadrati	dei segnali di tutte le strip per l'evento corrente 
-              //Scopo : calcolare deviazione standard del segnale
-	  	        strip_total_distr->Fill(signal[j_index]); //riempio istogramma per rappresentare la distribuzione totale dei segnali delle strip
+	       for(k=0; k<max_cluster_width; k++) { strip_signal[k] = 0.; } // azzero il segnale delle strip 
+         for( k=0; k<n_chip; k++)// ciclo sui chip 
+          { for (j=0; j<n_chip_chan; j++)// ciclo sui canali
+	           { j_index = j + k*n_chip_chan; 
+               if( j_index > 2 && j_index < 637) 
+                { //j_index va da 3 a 636, esclusi i bordi del sensore
+                  //printf("i %d k %d j %d j_index %d \n",i,k,j,j_index);
+		              signal[j_index] = (signal[j_index]-common[k])*good_event[i]; //rimuovo il common mode dal segnale della strip filtrando eventi cattivi azzerando il segnale se l'evento è cattivo
+			            strip_value[j_index]->Fill(signal[j_index]); //riempio l'istogramma strip_value con il segnale della strip
+                  //Scopo : rappresentare il segnale di ogni strip
+		              //ev_display->Fill(float(j_index),signal[j_index]);//riempio istogramma con indice di strip e valore del segnale sulla strip 
+                  //Scopo : rappresentare segnale di strip ed ogni bin corrisponde ad una strip e il valore del bin è il segnale della strip
+		              ev_signal = ev_signal + signal[j_index]; //accumula la somma totale dei segnali di tutte le strip per l'evento corrente
+                  //Scopo : calcolare media del segnale
+		              ev_signal2 = ev_signal2 + signal[j_index]**2;	 //accumula la somma dei quadrati	dei segnali di tutte le strip per l'evento corrente 
+                  //Scopo : calcolare deviazione standard del segnale
+	  	            strip_total_distr->Fill(signal[j_index]); //riempio istogramma per rappresentare la distribuzione totale dei segnali delle strip
 
-           // printf(" evento %d k %d j %d indxex %d prima massimo relativo \n",i,k,j,j_index);
-           // i = indice dell'evento
-           // k = indice del chip
-           // j = indice della strip
-           // j_index = indice globale della strip (k*64+j) 
+                  // printf(" evento %d k %d j %d indxex %d prima massimo relativo \n",i,k,j,j_index);
+                  // i = indice dell'evento
+                  // k = indice del chip
+                  // j = indice della strip
+                  // j_index = indice globale della strip (k*64+j) 
 
 // look for relative maximum
-              if(signal[j_index] > cluster_low_threshold) //inizio il cluster 
-		           { if(in_cluster < 1) {local_max[i][i_local_max][0] = float(j_index);} // start cluster
-			           if(in_cluster < max_cluster_width) //sempre vero in quanto in_cluster < 640
-                  { if(signal[j_index] > cluster_low_threshold || signal[j_index] < -cluster_low_threshold)// verifico se  il valore del segnale di una strip è sopra la soglia positiva o sotto la soglia negativa 
-                    {n_strip_over_threshold = n_strip_over_threshold + 1;}//incremento contatore di strip sopra soglia
-		                in_cluster = in_cluster +1; //incremento contatore di strip che fanno parte del cluster
-                    // in_cluster = numero di strip che fanno parte del cluster
-			              printf(" evento %d chip %d canale %d strip %d dentro loop massimo relativo \n",i,k,j,j_index);
-                    // i = indice dell'evento
-                    // k = indice del chip
-                    // j = indice della strip sul canale del chip
-                    // j_index = indice globale della strip (k*64+j)
+                  if(signal[j_index] > cluster_low_threshold) //inizio il cluster 
+		               { if(in_cluster < 1) {local_max[i][i_local_max][0] = float(j_index);} // start cluster
+			               if(in_cluster < max_cluster_width) //sempre vero in quanto in_cluster < 640
+                      { if(signal[j_index] > cluster_low_threshold )// verifico se  il valore del segnale di una strip è sopra la soglia positiva
+                        // if(signal[j_index] > cluster_low_threshold || signal[j_index] < -cluster_low_threshold)// verifico se  il valore del segnale di una strip è sopra la soglia positiva o sotto la soglia negativa 
+                        { n_strip_over_threshold = n_strip_over_threshold + 1;}//incremento contatore di strip sopra soglia
+		                      in_cluster = in_cluster +1; //incremento contatore di strip che fanno parte del cluster
+                          // in_cluster = numero di strip che fanno parte del cluster
+			                    printf(" evento %d chip %d canale %d strip %d start cluster %f dentro loop massimo relativo \n",i,k,j,j_index,local_max[i][i_local_max][0]);
+                          // i = indice dell'evento
+                          // k = indice del chip
+                          // j = indice della strip sul canale del chip
+                          // j_index = indice globale della strip (k*64+j)
                     
-		                if(signal[j_index] > local_max[i][i_local_max][2]) //se il segnale di strip è maggiore dell'attuale massimo locale
-		                 { local_max[i][i_local_max][3] = float(j_index); //allora memorizzo la posizione del massimo 
-		                   local_max[i][i_local_max][2] = signal[j_index]; //allora memorizzo il nuovo massimo locale
-                       //quindi io ho spostato il valore del massimo e la posizione del massimo.
+		                      if(signal[j_index] > local_max[i][i_local_max][2]) //se il segnale di strip è maggiore dell'attuale massimo locale
+		                       { local_max[i][i_local_max][3] = float(j_index); //allora memorizzo la posizione del massimo 
+		                         local_max[i][i_local_max][2] = signal[j_index]; //allora memorizzo il nuovo massimo locale
+                             //quindi io ho spostato il valore del massimo e la posizione del massimo.
 
-                    // printf(" inside cluster j_index %d signal %5.2f local_max %5.2f position %5.0f \n",j_index,signal[j_index],local_max[i][i_local_max][2],local_max[i][i_local_max][3]);
-		                  }
-		                   local_max[i][i_local_max][1] = float(j_index);   // end cluster 
-		                   local_max[i][i_local_max][4] = local_max[i][i_local_max][1]-local_max[i][i_local_max][0]+1;   // cluster width = end - start +1
-		                   local_max[i][i_local_max][5] = local_max[i][i_local_max][5]+signal[j_index];   // integral of cluster signal = sum of signals in cluster
-		                   cluster_strip_signal_distr->Fill(signal[j_index]); //costruisco un istogramma per rappresentare la distribuzione del segnale delle strip del cluster
-	                     strip_occupancy->Fill(float(j_index)); //riempio l'istogramma strip_occupancy con il valore del j_index
+                             //printf(" inside cluster j_index %d signal %5.2f local_max %5.2f position %5.0f \n",j_index,signal[j_index],local_max[i][i_local_max][2],local_max[i][i_local_max][3]);
+		                        }
+		                         local_max[i][i_local_max][1] = float(j_index);   // end cluster 
+		                         local_max[i][i_local_max][4] = local_max[i][i_local_max][1]-local_max[i][i_local_max][0]+1;   // cluster width = end - start +1
+		                         local_max[i][i_local_max][5] = local_max[i][i_local_max][5]+signal[j_index];   // integral of cluster signal = sum of signals in cluster
+		                         cluster_strip_signal_distr->Fill(signal[j_index]); //costruisco un istogramma per rappresentare la distribuzione del segnale delle strip del cluster
+	                           strip_occupancy->Fill(float(j_index)); //riempio l'istogramma strip_occupancy con il valore del j_index
 
-                    // printf(" evento %d strip %d # cluster %d signal %5.1f pos %5.1f local max %5.1f cluster width %5.0f \n",i,j_index,i_local_max,signal[j_index],local_max[i][i_local_max][2],local_max[i][i_local_max][3],in_cluster);
-			             }
-	 	            }
-		          else //altrimenti non inizio il cluster 
-		           { if(in_cluster > 0 ) 
-		              { in_cluster = 0;      		  // dichiaro chiuso quel cluster 
-		                Int_t l1 = 0;
-		                strip_occupancy_max->Fill(local_max[i][i_local_max][3]); //riempio l'istogramma strip_occupancy_max con il valore del massimo locale
+                             // printf(" evento %d strip %d # cluster %d signal %5.1f pos %5.1f local max %5.1f cluster width %5.0f \n",i,j_index,i_local_max,signal[j_index],local_max[i][i_local_max][2],local_max[i][i_local_max][3],in_cluster);
+			                 }
+	 	                }
+		              else //altrimenti non inizio il cluster oppure lo chiudo
+		               { if(in_cluster > 0 ) 
+		                  { in_cluster = 0;      		  // dichiaro chiuso quel cluster 
+                        printf(" fine cluster inizio %f fine %f \n ",local_max[i][i_local_max][0], local_max[i][i_local_max][1]);
+                
+                        Int_t l1 = 0;  //a che mi serve? per riempire l'array strip_signal dopo
+		                    strip_occupancy_max->Fill(local_max[i][i_local_max][3]); //riempio l'istogramma strip_occupancy_max con il valore del massimo locale
+                        //fprintf(outfile," %d  %d %d %d ",i,i_local_max+1,int(local_max[i][i_local_max][0])-3,int(local_max[i][i_local_max][1])+3); 
+                        //stampo i = indice dell'evento
+                        //stampo i_local_max+1 = progressivo del massimo locale dentro un frame
+                        //stampo int(...)[0]-3, int(...)[1]+3 = start ed end del cluster
 
-                 // fprintf(outfile," %d  %d %d %d ",i,i_local_max+1,int(local_max[i][i_local_max][0])-2,int(local_max[i][i_local_max][1])+2);
-
-                 // Specie di salvaguardia:
-                    if(local_max[i][i_local_max][0] < 2) { Int_t lower_cluster = 0;} // se lo start < 2, cioè vale 0 o 1, allora il lower_cluster lo faccio partire da 0
-                    else {Int_t lower_cluster = int(local_max[i][i_local_max][0])-2;} // altrimenti prendo lo start meno 2
-                    if(local_max[i][i_local_max][1] > n_strip_sensor-2) { Int_t upper_cluster = 640;} // se l'end > 638, allora lo faccio finire a 640
-                    else {Int_t upper_cluster = int(local_max[i][i_local_max][1])+2;} // altrimenti prendo l'end più 2
-			              for(l=lower_cluster; l<upper_cluster; l++) 	
-			               { // fprintf(outfile,"%.2f ",signal[l]);	  
-			                strip_signal[l1] = signal[l];
-			                l1 = l1 + 1;
-		   	              }
-                       // fprintf(outfile,"\n");
+                        // Specie di salvaguardia:
+                        if(local_max[i][i_local_max][0] >2) // { Int_t lower_cluster = 0;} // se lo start < 3, cioè vale 0 o 1 o 2, allora il lower_cluster lo faccio partire da 0
+                         { Int_t lower_cluster = int(local_max[i][i_local_max][0])-3; // altrimenti prendo lo start meno 3
+                           if(local_max[i][i_local_max][1] < n_strip_sensor-2)// { Int_t upper_cluster = 640;} // se l'end > 637, allora lo faccio finire a 640
+                            { Int_t upper_cluster = int(local_max[i][i_local_max][1])+3; // altrimenti prendo l'end più 3
+                              fprintf(outfile," %d  %d %d %d ",i,i_local_max+1,int(local_max[i][i_local_max][0])-3,int(local_max[i][i_local_max][1])+3);
+			                        for(l=lower_cluster; l<upper_cluster+1; l++) 	
+			                         { fprintf(outfile,"%.2f ",signal[l]);// stampo un array che mi dice il valore del segnale per ogni strip dal lower all'upper 
+			                           strip_signal[l1] = signal[l];
+			                           l1 = l1 + 1;// incremento contatore per il prossimo cluster
+		   	                        }
+                              fprintf(outfile,"\n"); //vado a capo nel file txt di output
                      
-			                ev_number = i;
-			                n_cluster = i_local_max;
-			                start_cluster = lower_cluster;
-			                stop_cluster = upper_cluster;
-			                cluster_width = upper_cluster - lower_cluster +1;
-			                common_noise = common_tot;
-			                common_noise_rms = common_tot_rms;
-                   // t_ridotto.Fill();
-		                  for(l1=0; l1<cluster_width; l1++) { strip_signal[l1] = 0.; } 
-                   // local_max[i][i_local_max][3] = float(j_index-1);
-			             // Int_t test_index = 0;
-			             // printf(" %d  %d %d %d ",i,i_local_max+1,int(local_max[i][i_local_max][0])-2,int(local_max[i][i_local_max][1])+2);
-	                 // printf(" evento %d j_index %d numero cluster in frame %d start %5.0f stop %5.0f cluster max pos %5.0f max value %5.1f \n",i,j_index,i_local_max+1,local_max[i][i_local_max][0],local_max[i][i_local_max][1],local_max[i][i_local_max][3],local_max[i][i_local_max][2]); 
-		               // for(test_index=(int(local_max[i][i_local_max][0])-2); test_index<(int(local_max[i][i_local_max][1])+3); test_index++)
-			             // { printf(" %d  %5.1f \n",test_index,signal[test_index]);}
-		                  i_local_max = i_local_max + 1;    // incremento contatore per il prossimo cluster
-		               }
-		            }
-		        }
+			                        ev_number = i; 
+			                        n_cluster = i_local_max; 
+			                        start_cluster = lower_cluster;
+			                        stop_cluster = upper_cluster;
+			                        cluster_width = upper_cluster - lower_cluster +1;// perchè "+1"? perchè l'upper è escluso
+			                        common_noise = common_tot;
+			                        common_noise_rms = common_tot_rms;
+                              // t_ridotto.Fill();
+		                          for(l1=0; l1<cluster_width; l1++) { strip_signal[l1] = 0.; }  
+                              // local_max[i][i_local_max][3] = float(j_index-1);
+			                        // Int_t test_index = 0;
+			                        // printf(" %d  %d %d %d ",i,i_local_max+1,int(local_max[i][i_local_max][0])-3,int(local_max[i][i_local_max][1])+3);
+	                            printf(" evento %d j_index %d numero cluster in frame %d start %5.0f stop %5.0f cluster max pos %5.0f max value %5.1f \n",i,j_index,i_local_max+1,local_max[i][i_local_max][0],local_max[i][i_local_max][1],local_max[i][i_local_max][3],local_max[i][i_local_max][2]); 
+		                          // for(test_index=(int(local_max[i][i_local_max][0])-3); test_index<(int(local_max[i][i_local_max][1])+3); test_index++)
+			                        // { printf(" %d  %5.1f \n",test_index,signal[test_index]);}
+		                          i_local_max = i_local_max + 1; 
+                             } 
+                          }   // incremento contatore per il prossimo cluster
+		                   }
+                    }
+                 }
+		          }
+	         }
+	      }
+ 	      if(i_local_max > 0 && i_local_max < 8) 
+	       { cluster_width_distr->Fill(local_max[i][i_local_max-1][4]);
+	         cluster_integral_signal_distr->Fill(local_max[i][i_local_max-1][5]);
+           if(i_local_max > 5.) { printf( "   evento troppi cluster %d n strip over threshold %d \n",i,n_strip_over_threshold);}
 	        }
-	    }
- 	   if(i_local_max > 0 && i_local_max < 8)
-	    { cluster_width_distr->Fill(local_max[i][i_local_max-1][4]);
-	      cluster_integral_signal_distr->Fill(local_max[i][i_local_max-1][5]);
-        if(i_local_max > 5.) { printf( "   evento troppi cluster %d n strip over threshold %d \n",i,n_strip_over_threshold);}
-	     }
-	   if(good_event > 0) 
-	    { ev_signal = ev_signal/n_strip_sensor;
-	      rms_signal = sqrt(ev_signal2/n_strip_sensor - ev_signal**2);
-	      rms_signal_distr->Fill(rms_signal);
-	      n_cluster_profile->Fill(float(i),float(i_local_max));   // profilo # cluster nel frame
-	      n_cluster_distr->Fill(float(i_local_max));   // distribuzione # cluster nel frame
-	      n_strip_over_threshold_distr->Fill(float(n_strip_over_threshold));
-	     }
-  // if(i_local_max > 4 ) { ev_display->Write();}
-     f.cd();
-	   if(i < 100)
-	    { ev_display->Write();
-	      ev_raw_display->Write();
-	     }
-	   delete ev_display;
-	   delete ev_raw_display;
-	   printf(" wevento %d \n",i);
-	   file.cd();
-	    }
+	      if(good_event > 0) 
+	       { ev_signal = ev_signal/n_strip_sensor;
+	         rms_signal = sqrt(ev_signal2/n_strip_sensor - ev_signal**2);
+	         rms_signal_distr->Fill(rms_signal);
+	         n_cluster_profile->Fill(float(i),float(i_local_max));   // profilo # cluster nel frame
+	         n_cluster_distr->Fill(float(i_local_max));   // distribuzione # cluster nel frame
+	         n_strip_over_threshold_distr->Fill(float(n_strip_over_threshold));
+	        }
+        // if(i_local_max > 4 ) { ev_display->Write();}
+        f.cd();
+	      if(i < 100)
+	       { //ev_display->Write();
+	         //ev_raw_display->Write();
+	        }
+	      //delete ev_display;
+	      //delete ev_raw_display;
+	      //printf(" wevento %d \n",i);
+	      file.cd();
+	    } //fine if(good_event > 0)
 
-  // if((i - i/10) < 1) {cout << " evento  " << i << " processato " << endl;}
-    }
+     // if((i - i/10) < 1) {cout << " evento  " << i << " processato " << endl;}
+    }// fine ciclo eventi
+  // chiudo il file di input
 
   // entro nel TFile dove voglio scrivere gli istogrammi e i grafici
   // f_tree->cd();
@@ -475,10 +489,10 @@ langaus->SetParameter(4,2.);
   file->Close();
   printf(" close input data file \n"); 
   f->cd();
-  common_tot_vs_rms->Write();
-  hcm->Write();
-  hcm_prof->Write();
-  common_tot_rms_distr->Write();
+  common_tot_vs_rms->Write(); // scrivo l'istogramma 2D
+  hcm->Write(); // scrivo l'istogramma del common mode unico
+  hcm_prof->Write(); // scrivo il profilo del common mode unico
+  common_tot_rms_distr->Write(); // scrivo l'istogramma del rumore comune
 //  common_tot_vs_rms->Write();
 //  common_ADC_1_distr->Write();
 //  common_ADC_2_distr->Write();
@@ -487,20 +501,20 @@ langaus->SetParameter(4,2.);
   printf(" dopo strip signal \n");
   for(k=0; k<n_chip; k++) 
    { hcm_chip[k]->Write();
-    hcm_prof_chip[k]->Write();
-   }
-  strip_total_distr->Write();
+     hcm_prof_chip[k]->Write();
+    }
+  /*strip_total_distr->Write();
   n_cluster_profile->Write();
   cluster_width_distr->Write();
   cluster_strip_signal_distr->Write();
   cluster_integral_signal_distr->Write();
   n_cluster_distr->Write();
   strip_occupancy->Write();
-  strip_occupancy_max->Write();
+  strip_occupancy_max->Write();*/
   f->Close();
-//  f1->Close();
-//   
-// chiusura file ridotto
-//
-//  fclose(outfile);*/
+  //  f1->Close();
+  //   
+  // chiusura file ridotto
+  //
+  fclose(outfile);// chiudo il file di output
 }

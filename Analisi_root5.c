@@ -378,33 +378,33 @@ langaus->SetParameter(4,2.);
                   if(signal[j_index] > cluster_low_threshold) //inizio il cluster 
 		               { if(in_cluster < 1) {local_max[i][i_local_max][0] = float(j_index);} // start cluster
 			               if(in_cluster < max_cluster_width) //sempre vero in quanto in_cluster < 640
-                      { if(signal[j_index] > cluster_low_threshold )// verifico se  il valore del segnale di una strip è sopra la soglia positiva
+                        // if(signal[j_index] > cluster_low_threshold )// verifico se  il valore del segnale di una strip è sopra la soglia positiva
                         // if(signal[j_index] > cluster_low_threshold || signal[j_index] < -cluster_low_threshold)// verifico se  il valore del segnale di una strip è sopra la soglia positiva o sotto la soglia negativa 
-                        { n_strip_over_threshold = n_strip_over_threshold + 1;}//incremento contatore di strip sopra soglia
-		                      in_cluster = in_cluster +1; //incremento contatore di strip che fanno parte del cluster
-                          // in_cluster = numero di strip che fanno parte del cluster
-			                    printf(" evento %d chip %d canale %d strip %d start cluster %f dentro loop massimo relativo \n",i,k,j,j_index,local_max[i][i_local_max][0]);
-                          // i = indice dell'evento
-                          // k = indice del chip
-                          // j = indice della strip sul canale del chip
-                          // j_index = indice globale della strip (k*64+j)
+                      { n_strip_over_threshold = n_strip_over_threshold + 1;}//incremento contatore di strip sopra soglia
+		                 in_cluster = in_cluster +1; //incremento contatore di strip che fanno parte del cluster
+                     // in_cluster = numero di strip che fanno parte del cluster
+			               printf(" evento %d chip %d canale %d strip %d start cluster %f dentro loop massimo relativo \n",i,k,j,j_index,local_max[i][i_local_max][0]);
+                     // i = indice dell'evento
+                     // k = indice del chip
+                     // j = indice della strip sul canale del chip
+                     // j_index = indice globale della strip (k*64+j)
                     
-		                      if(signal[j_index] > local_max[i][i_local_max][2]) //se il segnale di strip è maggiore dell'attuale massimo locale
-		                       { local_max[i][i_local_max][3] = float(j_index); //allora memorizzo la posizione del massimo 
-		                         local_max[i][i_local_max][2] = signal[j_index]; //allora memorizzo il nuovo massimo locale
-                             //quindi io ho spostato il valore del massimo e la posizione del massimo.
+		                 if(signal[j_index] > local_max[i][i_local_max][2]) //se il segnale di strip è maggiore dell'attuale massimo locale
+		                  { local_max[i][i_local_max][3] = float(j_index); //allora memorizzo la posizione del massimo 
+		                    local_max[i][i_local_max][2] = signal[j_index]; //allora memorizzo il nuovo massimo locale
+                        //quindi io ho spostato il valore del massimo e la posizione del massimo.
 
-                             //printf(" inside cluster j_index %d signal %5.2f local_max %5.2f position %5.0f \n",j_index,signal[j_index],local_max[i][i_local_max][2],local_max[i][i_local_max][3]);
-		                        }
-		                         local_max[i][i_local_max][1] = float(j_index);   // end cluster 
-		                         local_max[i][i_local_max][4] = local_max[i][i_local_max][1]-local_max[i][i_local_max][0]+1;   // cluster width = end - start +1
-		                         local_max[i][i_local_max][5] = local_max[i][i_local_max][5]+signal[j_index];   // integral of cluster signal = sum of signals in cluster
-		                         cluster_strip_signal_distr->Fill(signal[j_index]); //costruisco un istogramma per rappresentare la distribuzione del segnale delle strip del cluster
-	                           strip_occupancy->Fill(float(j_index)); //riempio l'istogramma strip_occupancy con il valore del j_index
+                        //printf(" inside cluster j_index %d signal %5.2f local_max %5.2f position %5.0f \n",j_index,signal[j_index],local_max[i][i_local_max][2],local_max[i][i_local_max][3]);
+		                   }
+		                 local_max[i][i_local_max][1] = float(j_index);   // end cluster 
+		                 local_max[i][i_local_max][4] = local_max[i][i_local_max][1]-local_max[i][i_local_max][0]+1;   // cluster width = end - start +1
+		                 local_max[i][i_local_max][5] = local_max[i][i_local_max][5]+signal[j_index];   // integral of cluster signal = sum of signals in cluster
+		                 cluster_strip_signal_distr->Fill(signal[j_index]); //costruisco un istogramma per rappresentare la distribuzione del segnale delle strip del cluster
+	                   strip_occupancy->Fill(float(j_index)); //riempio l'istogramma strip_occupancy con il valore del j_index
 
-                             // printf(" evento %d strip %d # cluster %d signal %5.1f pos %5.1f local max %5.1f cluster width %5.0f \n",i,j_index,i_local_max,signal[j_index],local_max[i][i_local_max][2],local_max[i][i_local_max][3],in_cluster);
-			                 }
-	 	                }
+                     // printf(" evento %d strip %d # cluster %d signal %5.1f pos %5.1f local max %5.1f cluster width %5.0f \n",i,j_index,i_local_max,signal[j_index],local_max[i][i_local_max][2],local_max[i][i_local_max][3],in_cluster);
+			              }
+	 	                
 		              else //altrimenti non inizio il cluster oppure lo chiudo
 		               { if(in_cluster > 0 ) 
 		                  { in_cluster = 0;      		  // dichiaro chiuso quel cluster 

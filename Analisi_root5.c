@@ -61,13 +61,13 @@ langaus->SetParameter(4,2.);
 //TFile è un file di tipo ROOT
 
 //File dove scrivo istogrammi e grafici
-  TFile *f = new TFile("C:/root_v5.34.38/macros/New_DAQ_foot_3172_results_1000.root", "RECREATE");  
+  TFile *f = new TFile("C:/root_v5.34.38/macros/isto_PPFM001B_PL_025.root", "RECREATE");  
 //File che leggo
-  TFile *file = new TFile("C:/root_v5.34.38/macros/foot_3172.root");
+  TFile *file = new TFile("C:/root_v5.34.38/macros/PPFM001B_PL_025.root");
 //dichiaro un indicatore per un file con etichetta "outfile"
   FILE *outfile;
 //dichiaro una variaile carattere con 700 caratteri    
-  char fileout[700] = "C:/root_v5.34.38/macros/output.txt";  //file txt che genero di output
+  char fileout[700] = "C:/root_v5.34.38/macros/reduced_PPFM001B_PL_025.txt";  //file txt che genero di output
   outfile = fopen(fileout,"a");//sto aprendo il file di output in scrittura
 //estraggo un oggetto "TTree" chiamato "raw_events" dal file ROOT precedentemente estratto 
   TTree * raw_events = (TTree*)file->Get("raw_events"); //cerca un oggetto con il nome "raw_events" 
@@ -93,7 +93,7 @@ langaus->SetParameter(4,2.);
   //Ogni "entrata" corrisponde a un evento registrato nel file ROOT, che può contenere dati come letture ADC,segnali o altre informazioni sperimentali
   Int_t n_pedestal = 500; //numero di eventi da utilizzare per il calcolo del piedistallo, perchè 500? perchè è un numero arbitrario scelto per avere una buona statistica
   Int_t n_events = nentries; //numero totale di eventi da analizzare
-  n_events = 5000; 
+  n_events = 100; 
   printf(" n pedestal %d n_events %d \n",n_pedestal,n_events); 
   Int_t event_offset = 0; //azzero l'offset dell'evento
   Int_t ped_event_offset = 0; //azzero l'offset del piedistallo  
@@ -483,12 +483,12 @@ langaus->SetParameter(4,2.);
     }// fine ciclo eventi
 
   // chiudo il file di input
-  // entro nel TFile dove voglio scrivere gli istogrammi e i grafici
-  // f_tree->cd();
-
+ 
   /*printf(" fine data processing \n");
   file->Close(); 
-  printf(" close input data file \n"); 
+  printf(" close input data file \n");*/ 
+   // entro nel TFile dove voglio scrivere gli istogrammi e i grafici
+  // f_tree->cd();
   f->cd();
   common_tot_vs_rms->Write(); // scrivo l'istogramma 2D
   hcm->Write(); // scrivo l'istogramma del common mode unico
@@ -503,16 +503,21 @@ langaus->SetParameter(4,2.);
   for(k=0; k<n_chip; k++) 
    { hcm_chip[k]->Write();
      hcm_prof_chip[k]->Write();
-    }*/
+    }
+
+  for(j=0; j<n_strip_sensor; j++) 
+   {  h[j]->Write();
+      h_prof[j]->Write();
+    }
    
-  /*strip_total_distr->Write();
+  strip_total_distr->Write();
   n_cluster_profile->Write();
   cluster_width_distr->Write();
   cluster_strip_signal_distr->Write();
   cluster_integral_signal_distr->Write();
   n_cluster_distr->Write();
   strip_occupancy->Write();
-  strip_occupancy_max->Write();*/
+  strip_occupancy_max->Write();
   f->Close();
   //  f1->Close();
   //   

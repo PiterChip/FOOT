@@ -59,13 +59,13 @@
   langaus->SetParameter(4, 2.);
 
   // File dove scrivo istogrammi e grafici
-  TFile *f = new TFile("C:/root_v5.34.38/macros/isto_PPFM001B_PL_000.root", "RECREATE");
+  TFile *f = new TFile("C:/root_v5.34.38/macros/isto_PPFM001B_PL_007_PROVA.root", "RECREATE");
   // File che leggo
-  TFile *file = new TFile("C:/root_v5.34.38/macros/PPFM001B/compressed/PPFM001B_PL_000.root");
+  TFile *file = new TFile("C:/root_v5.34.38/macros/PPFM001B/compressed/PPFM001B_PL_007.root");
   //dichiaro un indicatore per un file con etichetta "outfile"
   FILE *outfile;
   //dichiaro una variaile carattere con 700 caratteri    
-  char fileout[700] = "C:/root_v5.34.38/macros/reduced_PPFM001B_PL_000.txt";  //file txt che genero di output
+  char fileout[700] = "C:/root_v5.34.38/macros/reduced_PPFM001B_PL_007_PROVA.txt";  //file txt che genero di output
   outfile = fopen(fileout,"a");//sto aprendo il file di output in scrittura
   //estraggo un oggetto "TTree" chiamato "raw_events" dal file ROOT precedentemente estratto 
   TTree *raw_events = (TTree *)file->Get("raw_events");
@@ -81,22 +81,26 @@
   Int_t n_pedestal = 500;
   
 
-  // Scelgo quanti eventi processare (-1 per tutti)
+  // Scelgo quanti eventi processare (-1 per tutti) (0 per quelli oltre l'evento di bug compreso)
   Int_t n_events_to_process = -1;
 
   if(n_events_to_process == -1)
    {
     n_events_to_process = nentries;
    }
+  /*else if (n_events_to_process == 0)
+  {
+    n_events_to_process = 
+  }*/
   
   printf(" nentries %d n pedestal %d n events %d \n", nentries, n_pedestal, n_events_to_process);
-  Int_t event_offset = 0;
+  Int_t event_offset = 0; // cambia il numero per genereare il pezzo txt succesivo mettendo l'indice a cui muore il processamento dell'evento problematico
   Int_t ped_event_offset = 0;
   Int_t n_chip = 10;
   Int_t n_chip_chan = 64;
   Int_t n_strip_sensor = n_chip * n_chip_chan; // 640 = 10 * 64
   Double_t strip_signal[n_strip_sensor];
-  Int_t event_to_display = 535; // evento da visualizzare
+  Int_t event_to_display = 100; // evento da visualizzare
   Double_t threshold = 10.;
   Double_t common_thre = 10.;
   Int_t common_mode_choice = 0;
@@ -198,7 +202,11 @@
 
   //
   for (Int_t i = event_offset; i < n_events_to_process; i++)
-  { // printf(" dentro loop eventi \n");
+   {  //if (i == 79679) || i == 43404 || i == 60212) //scarto evento/i problematico/i
+       //{ continue;
+
+       //}
+    // printf(" dentro loop eventi \n");
     raw_events->GetEntry(i);
     good_event[i] = 1;
     common_tot = 0.;
@@ -233,7 +241,7 @@
         {
           common_tot = common_tot + signal[j_index];
           common_tot2 = common_tot2 + signal[j_index] * *2;
-          //		  printf(" i %d j_index %d signal %f common %f common2 %f \n",i,j_index,signal[j_index],common_tot,common_tot2);
+          //printf(" i %d j_index %d signal %f common %f common2 %f \n",i,j_index,signal[j_index],common_tot,common_tot2);
           common[k] = common[k] + signal[j_index];
           if (k < 5)
           {
@@ -273,20 +281,25 @@
         }
       }
     }
-    common_ADC[0] = common_ADC[0] / n_ADC_strip_common[0];
-    common_ADC[1] = common_ADC[1] / n_ADC_strip_common[1];
-    common_tot = common_tot / n_total_strip_common;
-    common_tot_rms = sqrt(common_tot2 / n_total_strip_common - common_tot * *2);
+    if (n_ADC_strip_common[0] > 0 && n_ADC_strip_common[1] > 0 && n_total_strip_common > 0 && n_total_strip_common - common_tot * *2 > 0 ) 
+     {
+      common_ADC[0] = common_ADC[0] / n_ADC_strip_common[0];
+      common_ADC[1] = common_ADC[1] / n_ADC_strip_common[1];
+      common_tot = common_tot / n_total_strip_common;
+      common_tot_rms = sqrt(common_tot2 / n_total_strip_common - common_tot * *2);
+     }
+
     n_strip_common_distr->Fill(float(n_total_strip_common));
     hcm->Fill(common_tot);
     hcm_prof->Fill(float(i), common_tot);
     common_tot_rms_distr->Fill(common_tot_rms);
     common_tot_vs_rms->Fill(common_tot, common_tot_rms);
-    printf(" i %d common %f common_rms %f n_strip %d \n", i, common_tot, common_tot_rms, n_total_strip_common);
+    //printf(" i %d common %f common_rms %f n_strip %d \n", i, common_tot, common_tot_rms, n_total_strip_common);
     common_ADC_1_distr->Fill(common_ADC[0]);
     common_ADC_2_distr->Fill(common_ADC[1]);
+    
     //
-    //  start event processing
+    //  Start event processing
     //
     if (good_event > 0)
     {
@@ -318,7 +331,7 @@
             { //j_index va da 3 a 636, esclusi i bordi del sensore
              signal[j_index] = (signal[j_index] - common[k]) * good_event[i];
              strip_value[j_index]->Fill(signal[j_index]);
-             ev_display->Fill(float(j_index), signal[j_index]);
+             //ev_display->Fill(float(j_index), signal[j_index]);
              ev_signal = ev_signal + signal[j_index];
              ev_signal2 = ev_signal2 + signal[j_index] * *2;
              strip_total_distr->Fill(signal[j_index]);
@@ -338,7 +351,7 @@
                 if (signal[j_index] > cluster_low_threshold )   //|| signal[j_index] < -cluster_low_threshold) 
                 {n_strip_over_threshold = n_strip_over_threshold + 1;} //incremento contatore di strip sopra soglia  
                 in_cluster = in_cluster + 1; //incremento contatore di strip che fanno parte del cluster
-                printf(" evento %d chip %d canale %d strip %d start cluster %f dentro loop massimo relativo \n", i, k, j, j_index, local_max[i][i_local_max][0]);
+                //printf(" evento %d chip %d canale %d strip %d start cluster %f dentro loop massimo relativo \n", i, k, j, j_index, local_max[i][i_local_max][0]);
 
                 if (signal[j_index] > local_max[i][i_local_max][2]) //se il segnale di strip è maggiore dell'attuale massimo locale
                 {//allora...
@@ -359,7 +372,7 @@
               if (in_cluster > 0) // se ho una o piu strip nel cluster (cioè ho un cluster aperto) 
               {
                 in_cluster = 0; // dichiaro chiuso quel cluster
-                printf(" fine cluster inizio %f fine %f \n ",local_max[i][i_local_max][0], local_max[i][i_local_max][1]);
+                //printf(" fine cluster inizio %f fine %f \n ",local_max[i][i_local_max][0], local_max[i][i_local_max][1]);
 
                 Int_t l1 = 0;
                 strip_occupancy_max->Fill(local_max[i][i_local_max][3]);
@@ -395,7 +408,7 @@
                     //   local_max[i][i_local_max][3] = float(j_index-1);
                     //   Int_t test_index = 0;
                     //	 printf(" %d  %d %d %d ",i,i_local_max+1,int(local_max[i][i_local_max][0])-2,int(local_max[i][i_local_max][1])+2);
-                    printf(" evento %d j_index %d numero cluster in frame %d start %5.0f stop %5.0f cluster max pos %5.0f max value %5.1f \n",i,j_index,i_local_max+1,local_max[i][i_local_max][0],local_max[i][i_local_max][1],local_max[i][i_local_max][3],local_max[i][i_local_max][2]);
+                   // printf(" evento %d j_index %d numero cluster in frame %d start %5.0f stop %5.0f cluster max pos %5.0f max value %5.1f \n",i,j_index,i_local_max+1,local_max[i][i_local_max][0],local_max[i][i_local_max][1],local_max[i][i_local_max][3],local_max[i][i_local_max][2]);
                     //	 for(test_index=(int(local_max[i][i_local_max][0])-2); test_index<(int(local_max[i][i_local_max][1])+3); test_index++)
                     //	 printf(" %d  %5.1f \n",test_index,signal[test_index]);}
                     i_local_max = i_local_max + 1; // incremento contatore per il prossimo cluster
@@ -416,7 +429,7 @@
           printf("   evento troppi cluster %d n strip over threshold %d \n", i, n_strip_over_threshold);
         }
       }
-      if (good_event > 0)
+      if (good_event > 0 && n_strip_sensor > 0 && n_strip_sensor - ev_signal * *2 > 0 )
       {
         ev_signal = ev_signal / n_strip_sensor;
         rms_signal = sqrt(ev_signal2 / n_strip_sensor - ev_signal * *2);
@@ -432,14 +445,15 @@
         //ev_display->Write();
         //ev_raw_display->Write();
       }
-      /*delete ev_display;
-      delete ev_raw_display;
+      //delete ev_display;
+      /*delete ev_raw_display;
       printf(" wevento %d \n", i);*/
       file.cd();
     }
     //
+    }
     //	if((i - (i/10)*10) < 1) {cout << " evento  " << i << " processato " << endl;}
-  }
+  
 
   // entro nel TFile dove voglio scrivere gli istogrammi e i grafici
   // f_tree->cd();

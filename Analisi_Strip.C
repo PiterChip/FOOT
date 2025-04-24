@@ -24,74 +24,97 @@
 #include <TSpline.h>
 using namespace std;
 
+
 void Analisi_Strip() {
 
-    std::ifstream infile("C:/root_v5.34.38/macros/reduced_PPFM001B_PL_007.txt");  //nel file testo cambiare , con . !!!!!!!
-
-    if (!infile.is_open()) {
+    std::ifstream infile("C:/root_v5.34.38/macros/reduced_PPFM001B_PL_007.txt");  
+    if (!infile.is_open()) 
+    {
         std::cerr << "Errore nell'aprire il file!" << std::endl;
         return;
     }
 
-    double x = 0; //serve per la somma (accumulatore)
-    std::vector<double> sum, spessore;   //ci salvo x e x*150 um
-    std::string line;
-    
+    double adc = 0; // accumulatore di segnale sul cluster
+    double width = 0; // serve per il cluster width
 
-    int j = 0; 
+    // Istogrammi bidimensionali
+    TH2 *ADC_vs_ClusterWidth = new TH2F("ADC vs  Width", "ADC vs WIDTH", 30, 0., 30., 500, 0., 500.);
+    ADC_vs_ClusterWidth->GetXaxis()->SetTitle("Cluster Width [um]");
+    ADC_vs_ClusterWidth->GetYaxis()->SetTitle("ADC [...]");
+
+    TProfile *profile = new TProfile("ADC vs Width Profile ", "ADC vs WIDTH Profile", 30, 0, 30 , 0., 500.);
+    profile->GetXaxis()->SetTitle("Cluster Width [um]");
+    profile->GetYaxis()->SetTitle("ADC [...]");
+
+
+    //std::vector<double> signal, width;   // salvo signal e width     
+    std::string line;     
+    int j = 0;
+
     // Leggi i dati
-    while (std::getline(infile, line)) {
-        std::stringstream ss(line);
-        if (j >= 0) {                                            //non salta nessuna riga   
-            double evento, max, start_strip, end_strip, num1, num2, num3, num4, num5;
-            ss >> evento >> max >> start_strip >> end_strip >> num1 >> num2 >> num3 >> num4 >> num5;
-            if (num1 > 10) {
-                x = x + num1;
-            }
-            if (num2 > 10) {
-                x = x + num2;
-            }
-            if (num3 > 10) {
-                x = x + num3;
-            }
-            if (num4 > 10) {
-                x = x + num4;
-            }
-            if (num5 > 10) {
-                x = x + num5;
-            }
-            else {
-                x = x + 0;
-            }
+    while (std::getline(infile, line)) // mentre legge una riga dal file di input "infile" e la memorizza nella stringa "line"
+    {
+        std::stringstream ss(line); // oggetto "ss" inizializzato con il contenuto della riga appena letta
+        if (j>0)  //non salta nessuna riga
+        {               
+            double evento, max, start_strip, end_strip;
+            double nums[24]; //Array per memorizzare i segnali sulle strip del cluster letti sulla riga
+            ss >> evento >> max >> start_strip >> end_strip;
 
-        }
-        sum.push_back(x);
-        spessore.push_back(x * 150);  //tutti gli elementi in micron
-        x = 0;
+            //Leggo i tot numeri nella riga
+            for (int i = 0; i < 24; i++) 
+            {
+                ss >> nums[i];
+            }  
 
+            // Sommo i valori maggiori di 10
+            adc = 0; // Reset 
+            for (int i = 0; i < 24; i++) 
+            {
+              if (nums[i] > 10) 
+              {
+                 adc += nums[i]; //riempio l'accumulatore di segnale
+              }
+            }
+            
+            // Calcola la larghezza del cluster: 
+            width = (end_strip - start_strip) -5;  //+1 perchè voglio start ed end compresi nel cluster e -6 perchè non voglio i bordi
+
+            // Riempimento degli istogrammi
+            ADC_vs_ClusterWidth->Fill(width, adc);
+            profile->Fill(width, adc);                    
+        }        
+         
         j++;
     }
 
     infile.close();
 
+    // Salva gli istogrammi in un file .root e .pdf
+    TFile *outputFile = new TFile("C:/root_v5.34.38/macros/Grafici/reduced_007.root", "RECREATE");
+    ADC_vs_ClusterWidth->Write();
+    profile->Write();
+    outputFile->Close();
+    
+    TCanvas* c1 = new TCanvas("c1", "ADC-Width Graph");
 
-    //FACCIO GRAFICO ADC VS SPESSORE
-    TCanvas* c1 = new TCanvas("c1", "ADC-Spessore Graph");
-    TGraph* gr = new TGraph(spessore.size(), &spessore[0], &sum[0]);
+    /*TGraph* gr = new TGraph(spessore.size(), &spessore[0], &sum[0]);
     gr->SetLineColor(600); gr->SetMarkerStyle(20); gr->SetMarkerColor(600);
 
     TLegend* leg = new TLegend(0.7, 0.7, 0.9, 0.9);
-    leg->AddEntry(gr, "50 V");
+    leg->AddEntry(gr, " bias voltage: 50 V");
    
 
     gr->SetTitle("ADC vs Spessore;Spessore [um];ADC");
     gr->Draw("ALP");   //se non vuoi la linea, AP
-    leg->Draw("Same");
+    leg->Draw("Same");*/
 
+    
+    //ADC_vs_ClusterWidth->Draw("COLZ");
+    
 
-    //Salvo come files .root il plot senza piedistallo
-    c1->SaveAs("C:/root_v5.34.38/macros.root");
-    c1->SaveAs("C:/root_v5.34.38/macros.pdf","RECREATE");
+    //Salvo come files .root  e .pdf il plot 
+    c1->SaveAs("C:/root_v5.34.38/macros/Grafici/reduced_007.pdf");
+    
 
-
-}
+ }

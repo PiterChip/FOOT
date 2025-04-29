@@ -3,7 +3,7 @@
 //   create a root file with an histogram and an ntuple.
 
 #include <iostream>
-#include<sstream> 
+#include <sstream> 
 #include <memory>
 #include <cmath>
 #include <vector>
@@ -55,7 +55,7 @@ doublegaus->SetParameter(5,3.0);
 
 // File che leggo
   Float_t bias ;      // sensor bias [V]
-  Float_t Angle ;		// source angle [°]
+  Float_t Angle ;		// source angle [ï¿½]
   Int_t ev_number;
   Int_t n_cluster;
   Int_t start_cluster;
@@ -80,7 +80,8 @@ doublegaus->SetParameter(5,3.0);
   TH1F *strip_signal_vs_position_distr[60];
   TH1F *strip_signal_distr = new TH1F("Strip signal distribution","Strip signal distribution",2500,-50.,200.);
   TH1F *strip_signal_distr_1 = new TH1F("Strip signal distribution","Strip signal distribution",2500,-50.,200.);
-  TH1F *strip_signal_extreme_distr = new TH1F("Strip signal distribution","Strip signal distribution",2500,-50.,200.);
+  TH1F *strip_signal_extreme_distr_1 = new TH1F("Strip signal distribution","Strip signal distribution",2500,-50.,200.);
+  TH1F *strip_signal_extreme_distr_2 = new TH1F("Strip signal distribution","Strip signal distribution",2500,-50.,200.);
   TH1F *strip_signal_inner_distr = new TH1F("inner Strip signal distribution","Strip signal distribution",2500,-50.,200.);
   for(i=0; i<60; i++)
   { TH1F *sum_x_strip_signal_inner_distr[i] = new TH1F("Inner sum 1 Strip signal distribution","Strip signal distribution",(100+20*i),1.,(101.+20.*i));
@@ -92,31 +93,31 @@ doublegaus->SetParameter(5,3.0);
   
 // input file
   char conf_file[100], fileio[100], fileout[100], pippo[100];
-  strcpy(conf_file,"C:/root_v5.34.38/macros/FOOT/Taglio/reduced_PPFM001B_PL_002.txt");
+  strcpy(conf_file,"C:/root_v5.34.38/macros/reduced_PPFM001B_PL_tutti_i_txt.txt");
   printf(" input file \n",conf_file);
   ifstream ino;
   ino.open(conf_file);
-  int n_events = 8495;
+  int n_events = 126097;
   int event_number, numero_cluster, start_cluster, stop_cluster, strip_pos;
   float strip_value[640];
 
   for(int event=0; event<n_events; event++)
   { ino >> event_number;
     ino >> numero_cluster;
-	ino >> start_cluster;
-	ino >> stop_cluster;
+  	ino >> start_cluster;
+	  ino >> stop_cluster;
 	for(i=0; i<640; i++) {strip_value[i] = 0.;}
 //	printf(" event number %d \n",event_number);
-	int cluster_width_1;
+  int cluster_width_1;
 	cluster_width_1 = (stop_cluster - start_cluster +1);
 	cluster_width_distr.Fill(cluster_width_1);
-    for(int strip_pos=start_cluster; strip_pos<(stop_cluster+1); strip_pos++)
+  for(int strip_pos=start_cluster; strip_pos<(stop_cluster+1); strip_pos++)
     { ino >> strip_value[strip_pos];
       strip_signal_distr->Fill(strip_value[strip_pos]);
       if(cluster_width_1 > 	9 ) { strip_signal_distr_1->Fill(strip_value[strip_pos]);}
     }
-    strip_signal_extreme_distr->Fill(strip_value[start_cluster]);
-    strip_signal_extreme_distr->Fill(strip_value[stop_cluster]);	
+    strip_signal_extreme_distr_1->Fill(strip_value[start_cluster]);
+    strip_signal_extreme_distr_2->Fill(strip_value[stop_cluster]);	
   }
 /*
 
